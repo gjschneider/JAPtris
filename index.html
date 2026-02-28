@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JAPtris - The Addictive Puzzle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            /* Prevent scrolling while playing */
+            overflow: hidden;
+            touch-action: none;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        canvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+        
+        /* Danger Animations */
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 0.3); }
+            50% { box-shadow: 0 0 50px rgba(220, 38, 38, 0.6), inset 0 0 20px rgba(220, 38, 38, 0.4); border-color: rgba(220, 38, 38, 0.8); }
+        }
+        .danger-mode {
+            animation: pulse-red 0.8s infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-100 h-screen w-screen flex flex-col font-sans select-none items-center justify-center p-2 sm:p-6">
+
+    <!-- Header -->
+    <header class="mb-4 text-center">
+        <h1 class="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-wider" style="text-shadow: 0 0 20px rgba(0,255,255,0.3);">JAPtris</h1>
+    </header>
+
+    <!-- Main Game Area -->
+    <div class="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 sm:gap-8 items-center md:items-start justify-items-center">
+        
+        <!-- Left Panel: Stats -->
+        <div class="glass-panel rounded-2xl p-4 sm:p-6 w-full max-w-[200px] flex flex-row md:flex-col justify-between items-center md:items-start gap-4 order-2 md:order-1 hidden md:flex">
+            <div class="w-full text-center md:text-left">
+                <p class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-1">Score</p>
+                <p id="scoreDisplay" class="text-2xl sm:text-3xl font-mono font-bold text-white transition-all">0</p>
+            </div>
+            <div class="w-full text-center md:text-left">
+                <p class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-1">Level</p>
+                <p id="levelDisplay" class="text-2xl sm:text-3xl font-mono font-bold text-white">1</p>
+            </div>
+            <div class="w-full text-center md:text-left">
+                <p class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-1">Lines</p>
+                <p id="linesDisplay" class="text-2xl sm:text-3xl font-mono font-bold text-white">0</p>
+            </div>
+        </div>
+
+        <!-- Center: Game Canvas -->
+        <div class="relative order-1 md:order-2">
+            <!-- Game Board -->
+            <div id="boardContainer" class="glass-panel rounded-xl p-2 sm:p-3 relative bg-black/50 shadow-[0_0_30px_rgba(0,0,0,0.8)] border border-transparent">
+                <canvas id="gameCanvas" width="300" height="600" class="bg-slate-900 rounded block w-[240px] h-[480px] sm:w-[300px] sm:h-[600px]"></canvas>
+                
+                <!-- Overlay: Start Screen -->
+                <div id="startScreen" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-10 transition-opacity duration-300">
+                    <h2 class="text-3xl font-bold text-white mb-2 animate-pulse text-center">Ready?</h2>
+                    <p class="text-slate-300 mb-8 text-sm text-center px-4">Use Arrow Keys & Spacebar<br>or the on-screen controls.</p>
+                    <button id="startBtn" class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-full hover:scale-105 active:scale-95 transition-transform shadow-[0_0_20px_rgba(6,182,212,0.5)]">Play JAPtris</button>
+                </div>
+
+                <!-- Overlay: Game Over -->
+                <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 hidden">
+                    <h2 class="text-4xl font-black text-red-500 mb-2 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]">GAME OVER</h2>
+                    <p class="text-slate-300 mb-1">Final Score</p>
+                    <p id="finalScore" class="text-5xl font-mono font-bold text-white mb-6">0</p>
+                    
+                    <!-- High Score Entry Modal -->
+                    <div id="newHighScoreEntry" class="hidden flex flex-col items-center mb-6 w-full px-6">
+                        <p class="text-yellow-400 font-bold mb-3 animate-pulse">New Top Score!</p>
+                        <input type="text" id="playerName" maxlength="3" placeholder="AAA" class="text-slate-900 text-center text-3xl font-mono w-24 p-2 rounded mb-3 uppercase font-bold outline-none border-2 border-yellow-400 focus:border-white shadow-[0_0_15px_rgba(250,204,21,0.5)]">
+                        <button id="submitScoreBtn" class="px-6 py-2 bg-yellow-400 text-yellow-950 font-bold rounded-full hover:scale-105 active:scale-95 transition-transform w-full">Save Score</button>
+                    </div>
+
+                    <!-- Publication Ad Modal -->
+                    <div id="pubAdContainer" class="hidden flex-col items-center mb-6 w-full px-6 max-w-[280px] sm:max-w-sm text-center">
+                        <p class="text-slate-300 text-xs sm:text-sm mb-2 font-semibold">Play again, but please have a look at our newest publication first:</p>
+                        <a id="pubAdLink" href="#" target="_blank" class="block w-full p-3 bg-slate-900/80 border border-cyan-400/50 rounded-lg text-cyan-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors mb-4 text-xs sm:text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                            Publication Title
+                        </a>
+                    </div>
+
+                    <button id="restartBtn" class="px-8 py-3 bg-white text-slate-900 font-bold rounded-full hover:scale-105 active:scale-95 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.3)]">Play Again</button>
+                </div>
+            </div>
+            
+            <!-- Mobile Stats -->
+            <div class="flex justify-between w-full mt-4 md:hidden px-2">
+                <div>
+                    <p class="text-[10px] uppercase text-slate-400 font-bold">Score</p>
+                    <p id="scoreDisplayMobile" class="text-xl font-mono font-bold text-cyan-400">0</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[10px] uppercase text-slate-400 font-bold">Level</p>
+                    <p id="levelDisplayMobile" class="text-xl font-mono font-bold text-white">1</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] uppercase text-slate-400 font-bold">Lines</p>
+                    <p id="linesDisplayMobile" class="text-xl font-mono font-bold text-white">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="w-full max-w-[200px] flex flex-col items-center md:items-stretch gap-4 order-3 md:order-3">
+            <div class="glass-panel rounded-2xl p-4 w-full flex flex-col items-center">
+                <p class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-3 w-full text-center">Next Piece</p>
+                <div class="bg-slate-900/80 rounded border border-white/5 p-2 flex items-center justify-center">
+                    <canvas id="nextCanvas" width="150" height="150" class="block w-[100px] h-[100px] sm:w-[150px] sm:h-[150px]"></canvas>
+                </div>
+            </div>
+            
+            <div class="glass-panel rounded-2xl p-4 w-full hidden md:block">
+                <p class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-3 text-center border-b border-white/10 pb-2">Leaderboard</p>
+                <ul id="leaderboardList" class="flex flex-col gap-2 font-mono"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div class="mt-auto md:mt-8 w-full max-w-sm flex justify-between px-4 pb-6 md:hidden">
+        <div class="flex gap-2">
+            <button id="btn-left" class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center active:bg-white/30 backdrop-blur border border-white/20 touch-manipulation">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <button id="btn-down" class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center active:bg-white/30 backdrop-blur border border-white/20 touch-manipulation">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <button id="btn-right" class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center active:bg-white/30 backdrop-blur border border-white/20 touch-manipulation">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+        </div>
+        <div class="flex gap-2">
+            <button id="btn-rotate" class="w-14 h-14 bg-cyan-500/30 rounded-full flex items-center justify-center active:bg-cyan-500/60 backdrop-blur border border-cyan-400/50 touch-manipulation text-xl text-white">↻</button>
+            <button id="btn-drop" class="w-14 h-14 bg-red-500/30 rounded-full flex items-center justify-center active:bg-red-500/60 backdrop-blur border border-red-400/50 touch-manipulation text-xl font-bold text-white">⇓</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('nextCanvas');
+        const nextCtx = nextCanvas.getContext('2d');
+        const boardContainer = document.getElementById('boardContainer');
+
+        const COLS = 6;
+        const ROWS = 12;
+        const BLOCK_SIZE = 50;
+
+        let board = [];
+        let score = 0;
+        let lines = 0;
+        let level = 1;
+        let isGameOver = false;
+        let gameStarted = false;
+        let gameState = 'IDLE';
+        let animationId;
+
+        let highScores = [
+            { name: "JAP", score: 15000 },
+            { name: "CHM", score: 10000 },
+            { name: "LSU", score: 8500 },
+            { name: "PRO", score: 5000 },
+            { name: "NOB", score: 2500 }
+        ];
+
+        // --- UPDATED PUBLICATION DATABASE ---
+        // Newest papers first for weighted randomization
+        const publications = [
+            { title: "Droplet Microfluidic Approach to Investigate Fibroblasts in Breast Cancer", url: "https://pubs.acs.org/doi/10.1021/acsbiomaterials.5c01025" },
+            { title: "Bubble‐Free Frontal Polymerization using 1,1,2,2‐Tetraphenyl‐1,2‐Ethanediol", url: "https://doi.org/10.1002/pol.20250433" },
+            { title: "Cure-on-Demand Coatings Using Ammonia to Catalyze Thiol-Acrylate Reactions", url: "https://doi.org/10.1021/acsomega.5c00523" },
+            { title: "Frontal Polymerization in Thin Layers: Hydrodynamic Effects", url: "https://doi.org/10.1063/5.0252137" },
+            { title: "Frontal Polymerization of Phytic Acid Containing Hexaacrylate", url: "https://doi.org/10.1002/app.56561" },
+            { title: "Thiol-Acrylate Gel Systems for Frontal Polymerization", url: "https://doi.org/10.1002/pol.20240800" },
+            { title: "Gas-Free Initiation for Free-Radical Frontal Polymerization", url: "https://doi.org/10.1002/pol.20240335" },
+            { title: "Modelling Antagonistic Enzymes for Ph and Pva–Borate Gelation", url: "https://pubs.rsc.org/en/content/articlelanding/2024/me/d3me00138e" },
+            { title: "Free-Standing 3d Printing of Epoxy-Vinyl Ether Structures", url: "https://doi.org/10.1021/acsapm.3c02226" },
+            { title: "Thermally Initiated Cationic Frontal Polymerization through a Lone Onium Salt", url: "https://doi.org/10.1002/pol.20230506" },
+            { title: "Kinetic and Chemical Effects of Clays and Fillers in Epoxy–Vinyl Ether Composites", url: "https://pubs.acs.org/doi/abs/10.1021/acsami.3c00187" },
+            { title: "Frontal Polymerizations: From Chemical Perspectives to Applications", url: "https://doi.org/10.1021/acs.chemrev.2c00686" }
+        ];
+
+        let dropCounter = 0;
+        let dropInterval = 600;
+        let lastTime = 0;
+
+        let boardFlash = 0;
+        let linesToClear = [];
+        let clearTimer = 0;
+
+        const images = { normal: new Image(), worried: new Image(), angry: new Image() };
+        images.normal.src = 'JAP-portrait.jpeg';
+        images.worried.src = 'JAP-worried.jpeg';
+        images.angry.src = 'JAP-angry.jpeg';
+        let hasCustomEmotions = { worried: true, angry: true };
+        images.worried.onerror = () => { images.worried = images.normal; hasCustomEmotions.worried = false; };
+        images.angry.onerror = () => { images.angry = images.normal; hasCustomEmotions.angry = false; };
+
+        function getHighestRow() {
+            let highest = ROWS;
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (board[y] && board[y][x] !== 0) highest = Math.min(highest, y);
+                }
+            }
+            if (gameState === 'PLAYING' && currentPiece) highest = Math.min(highest, currentPiece.y);
+            return highest;
+        }
+
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSound(type) {
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+            if (type === 'move') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+                gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
+            } else if (type === 'rotate') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(600, now + 0.08);
+                gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.linearRampToValueAtTime(0.001, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
+            } else if (type === 'drop') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'clear') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(500, now); osc.frequency.linearRampToValueAtTime(800, now + 0.1); osc.frequency.linearRampToValueAtTime(1200, now + 0.2);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'gameover') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(30, now + 1.0);
+                gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 1.0);
+                osc.start(now); osc.stop(now + 1.0);
+            }
+        }
+
+        const COLORS = [null, '#00FFFF', '#3b82f6', '#f97316', '#eab308', '#22c55e', '#a855f7', '#ef4444'];
+        const PIECES = [[], [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]], [[2,0,0], [2,2,2], [0,0,0]], [[0,0,3], [3,3,3], [0,0,0]], [[4,4], [4,4]], [[0,5,5], [5,5,0], [0,0,0]], [[0,6,0], [6,6,6], [0,0,0]], [[7,7,0], [0,7,7], [0,0,0]]];
+
+        let currentPiece = { matrix: [], x: 0, y: 0 };
+        let nextPieceMatrix = [];
+
+        function createMatrix(w, h) { return Array.from({length: h}, () => new Array(w).fill(0)); }
+        function createPiece() { const index = Math.floor(Math.random() * 7) + 1; return PIECES[index].map(row => [...row]); }
+
+        function collide(boardMatrix, piece) {
+            const m = piece.matrix;
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 && (boardMatrix[y + piece.y] && boardMatrix[y + piece.y][x + piece.x]) !== 0) return true;
+                }
+            }
+            return false;
+        }
+
+        function merge(boardMatrix, piece) {
+            piece.matrix.forEach((row, y) => { row.forEach((value, x) => { if (value !== 0) boardMatrix[y + piece.y][x + piece.x] = value; }); });
+        }
+
+        function resetPiece() {
+            if (nextPieceMatrix.length === 0) nextPieceMatrix = createPiece();
+            currentPiece.matrix = nextPieceMatrix;
+            currentPiece.y = 0;
+            currentPiece.x = Math.floor((COLS / 2) - (currentPiece.matrix[0].length / 2));
+            nextPieceMatrix = createPiece();
+            if (collide(board, currentPiece)) gameOver();
+        }
+
+        function move(dir) {
+            currentPiece.x += dir;
+            if (collide(board, currentPiece)) currentPiece.x -= dir; else playSound('move');
+        }
+
+        function playerDrop() {
+            currentPiece.y++;
+            if (collide(board, currentPiece)) {
+                currentPiece.y--; merge(board, currentPiece); checkLines();
+                if (gameState !== 'CLEARING') resetPiece();
+            }
+            dropCounter = 0;
+        }
+
+        function hardDrop() {
+            while (!collide(board, currentPiece)) currentPiece.y++;
+            currentPiece.y--; merge(board, currentPiece); playSound('drop'); boardFlash = 0.4; checkLines();
+            if (gameState !== 'CLEARING') resetPiece();
+            dropCounter = 0;
+        }
+
+        function rotatePiece() {
+            const m = currentPiece.matrix; const original = m.map(row => [...row]);
+            for (let y = 0; y < m.length; ++y) { for (let x = 0; x < y; ++x) [m[x][y], m[y][x]] = [m[y][x], m[x][y]]; }
+            m.forEach(row => row.reverse());
+            let offset = 1;
+            while (collide(board, currentPiece)) {
+                currentPiece.x += offset; offset = -(offset + (offset > 0 ? 1 : -1));
+                if (offset > m[0].length) { currentPiece.matrix = original; currentPiece.x += offset; return; }
+            }
+            playSound('rotate');
+        }
+
+        function checkLines() {
+            let fullLines = [];
+            outer: for (let y = board.length - 1; y >= 0; --y) {
+                for (let x = 0; x < board[y].length; ++x) { if (board[y][x] === 0) continue outer; }
+                fullLines.push(y);
+            }
+            if (fullLines.length > 0) { linesToClear = fullLines; gameState = 'CLEARING'; clearTimer = 250; playSound('clear'); }
+        }
+
+        function processLineClears() {
+            linesToClear.forEach(y => { board.splice(y, 1); board.unshift(new Array(COLS).fill(0)); });
+            updateScore(linesToClear.length); linesToClear = []; gameState = 'PLAYING'; resetPiece();
+        }
+
+        function updateScore(clearedLines) {
+            if (clearedLines > 0) {
+                const multipliers = [0, 100, 300, 500, 800];
+                score += multipliers[clearedLines] * level;
+                lines += clearedLines; level = Math.floor(lines / 10) + 1;
+                dropInterval = Math.max(100, 600 - (level - 1) * 60);
+                ['scoreDisplay', 'scoreDisplayMobile'].forEach(id => {
+                    const el = document.getElementById(id); el.innerText = score;
+                    el.classList.add('text-yellow-300', 'scale-110'); setTimeout(() => el.classList.remove('text-yellow-300', 'scale-110'), 200);
+                });
+            }
+            document.getElementById('linesDisplay').innerText = lines;
+            document.getElementById('levelDisplay').innerText = level;
+            document.getElementById('linesDisplayMobile').innerText = lines;
+            document.getElementById('levelDisplayMobile').innerText = level;
+        }
+
+        function renderLeaderboard() {
+            const list = document.getElementById('leaderboardList');
+            list.innerHTML = '';
+            highScores.forEach((entry, i) => {
+                const isTop = i === 0;
+                list.innerHTML += `<li class="flex justify-between items-center bg-black/20 px-3 py-2 rounded border border-white/5"><span class="${isTop ? 'text-yellow-400 font-bold' : 'text-slate-300'}">${i+1}. ${entry.name}</span><span class="${isTop ? 'text-yellow-400 font-bold' : 'text-cyan-400 font-bold'}">${entry.score}</span></li>`;
+            });
+        }
+        renderLeaderboard();
+
+        function showPublicationAd() {
+            // Pick random weighted towards index 0 (newest)
+            const randIndex = Math.floor(Math.pow(Math.random(), 2) * publications.length);
+            const pub = publications[randIndex];
+            const pubLink = document.getElementById('pubAdLink');
+            pubLink.innerText = pub.title;
+            pubLink.href = pub.url;
+            document.getElementById('pubAdContainer').classList.remove('hidden');
+            document.getElementById('pubAdContainer').classList.add('flex');
+            document.getElementById('restartBtn').classList.remove('hidden');
+        }
+
+        function checkLeaderboardEntry() {
+            if (score > highScores[highScores.length - 1].score) {
+                document.getElementById('newHighScoreEntry').classList.remove('hidden');
+                document.getElementById('restartBtn').classList.add('hidden');
+                document.getElementById('pubAdContainer').classList.add('hidden');
+                document.getElementById('playerName').focus();
+            } else {
+                document.getElementById('newHighScoreEntry').classList.add('hidden');
+                showPublicationAd();
+            }
+        }
+
+        document.getElementById('submitScoreBtn').addEventListener('click', () => {
+            let name = document.getElementById('playerName').value.trim().toUpperCase() || 'AAA';
+            highScores.push({ name, score }); highScores.sort((a, b) => b.score - a.score); highScores.pop();
+            renderLeaderboard();
+            document.getElementById('newHighScoreEntry').classList.add('hidden');
+            showPublicationAd();
+        });
+
+        function drawBlockBase(context, px, py, colorIndex, alpha = 1, currentImage = images.normal, extraTint = null) {
+            if (colorIndex === 0) return;
+            if (currentImage && currentImage.complete && currentImage.naturalWidth !== 0) {
+                context.globalAlpha = alpha;
+                context.drawImage(currentImage, px, py, BLOCK_SIZE, BLOCK_SIZE);
+                context.fillStyle = COLORS[colorIndex];
+                context.globalAlpha = alpha * 0.15; // Lighter tint
+                context.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+                if (extraTint) { context.fillStyle = extraTint; context.globalAlpha = alpha * 0.2; context.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE); }
+            } else {
+                context.fillStyle = COLORS[colorIndex]; context.globalAlpha = alpha; context.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+            }
+            context.globalAlpha = 1.0;
+            context.strokeStyle = COLORS[colorIndex];
+            context.lineWidth = 2;
+            context.strokeRect(px + 1, py + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
+            context.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+            context.lineWidth = 2; context.beginPath(); context.moveTo(px, py + BLOCK_SIZE); context.lineTo(px, py); context.lineTo(px + BLOCK_SIZE, py); context.stroke();
+            context.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.4})`;
+            context.beginPath(); context.moveTo(px + BLOCK_SIZE, py); context.lineTo(px + BLOCK_SIZE, py + BLOCK_SIZE); context.lineTo(px, py + BLOCK_SIZE); context.stroke();
+        }
+
+        function drawNextPiece() {
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            if (!nextPieceMatrix || nextPieceMatrix.length === 0) return;
+            const bSize = nextCanvas.width / 4;
+            const offsetCol = (4 - nextPieceMatrix[0].length) / 2;
+            const offsetRow = (4 - nextPieceMatrix.length) / 2;
+            nextPieceMatrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value > 0) {
+                        const px = (offsetCol + x) * bSize, py = (offsetRow + y) * bSize;
+                        if (images.normal && images.normal.complete) {
+                            nextCtx.drawImage(images.normal, px, py, bSize, bSize);
+                            nextCtx.fillStyle = COLORS[value]; nextCtx.globalAlpha = 0.15; nextCtx.fillRect(px, py, bSize, bSize); nextCtx.globalAlpha = 1.0;
+                        } else {
+                            nextCtx.fillStyle = COLORS[value]; nextCtx.fillRect(px, py, bSize, bSize);
+                        }
+                        nextCtx.strokeStyle = COLORS[value]; nextCtx.lineWidth = 2; nextCtx.strokeRect(px + 1, py + 1, bSize - 2, bSize - 2);
+                    }
+                });
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const highest = getHighestRow();
+            let currentImage = images.normal, emotionTint = null;
+            if (highest <= 3) {
+                currentImage = images.angry; if (!hasCustomEmotions.angry) emotionTint = 'rgba(255, 0, 0, 1)';
+                boardContainer.classList.add('danger-mode');
+            } else if (highest <= 6) {
+                currentImage = images.worried; if (!hasCustomEmotions.worried) emotionTint = 'rgba(255, 165, 0, 1)';
+                boardContainer.classList.remove('danger-mode');
+            } else boardContainer.classList.remove('danger-mode');
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            for(let i=1; i<COLS; i++) { ctx.beginPath(); ctx.moveTo(i*BLOCK_SIZE, 0); ctx.lineTo(i*BLOCK_SIZE, canvas.height); ctx.stroke(); }
+            for(let j=1; j<ROWS; j++) { ctx.beginPath(); ctx.moveTo(0, j*BLOCK_SIZE); ctx.lineTo(canvas.width, j*BLOCK_SIZE); ctx.stroke(); }
+
+            board.forEach((row, y) => { row.forEach((value, x) => { if (value > 0) drawBlockBase(ctx, x * BLOCK_SIZE, y * BLOCK_SIZE, value, 1, currentImage, emotionTint); }); });
+            if (gameState === 'PLAYING') {
+                currentPiece.matrix.forEach((row, y) => { row.forEach((value, x) => { if (value > 0) drawBlockBase(ctx, (currentPiece.x + x) * BLOCK_SIZE, (currentPiece.y + y) * BLOCK_SIZE, value, 1, currentImage, emotionTint); }); });
+            } else if (gameState === 'CLEARING') {
+                const alpha = clearTimer / 250; ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                linesToClear.forEach(y => ctx.fillRect(0, y * BLOCK_SIZE, canvas.width, BLOCK_SIZE));
+            }
+            if (boardFlash > 0) { ctx.fillStyle = `rgba(255, 255, 255, ${boardFlash})`; ctx.fillRect(0, 0, canvas.width, canvas.height); boardFlash -= 0.05; }
+            drawNextPiece();
+        }
+
+        function update(time = 0) {
+            if (gameState === 'GAMEOVER') return;
+            const deltaTime = time - lastTime; lastTime = time;
+            if (gameState === 'CLEARING') { clearTimer -= deltaTime; if (clearTimer <= 0) processLineClears(); }
+            else if (gameState === 'PLAYING') { dropCounter += deltaTime; if (dropCounter > dropInterval) playerDrop(); }
+            draw();
+            if(gameStarted) animationId = requestAnimationFrame(update);
+        }
+
+        function startGame() {
+            initAudio(); board = createMatrix(COLS, ROWS); score = 0; lines = 0; level = 1; dropInterval = 600; updateScore(0);
+            document.getElementById('startScreen').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('pubAdContainer').classList.add('hidden');
+            boardContainer.classList.remove('danger-mode');
+            gameStarted = true; gameState = 'PLAYING'; nextPieceMatrix = []; resetPiece(); lastTime = performance.now(); update();
+        }
+
+        function gameOver() {
+            gameState = 'GAMEOVER'; gameStarted = false; playSound('gameover');
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+            boardContainer.classList.remove('danger-mode'); checkLeaderboardEntry(); cancelAnimationFrame(animationId);
+        }
+
+        document.addEventListener('keydown', e => {
+            if (!gameStarted || gameState !== 'PLAYING') return;
+            switch (e.keyCode) {
+                case 37: move(-1); e.preventDefault(); break;
+                case 39: move(1); e.preventDefault(); break;
+                case 40: playerDrop(); e.preventDefault(); break;
+                case 38: rotatePiece(); e.preventDefault(); break;
+                case 32: hardDrop(); e.preventDefault(); break;
+            }
+        });
+
+        const bindButton = (id, action) => {
+            const btn = document.getElementById(id);
+            const handler = (e) => { e.preventDefault(); if (gameStarted && gameState === 'PLAYING') action(); };
+            btn.addEventListener('touchstart', handler, {passive: false}); btn.addEventListener('mousedown', handler);
+        };
+        bindButton('btn-left', () => move(-1)); bindButton('btn-right', () => move(1)); bindButton('btn-down', () => playerDrop()); bindButton('btn-rotate', () => rotatePiece()); bindButton('btn-drop', () => hardDrop());
+
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>

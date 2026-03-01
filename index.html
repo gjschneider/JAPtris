@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            /* Prevent scrolling while playing */
             overflow: hidden;
             touch-action: none;
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
@@ -40,13 +39,13 @@
 
     <!-- Header -->
     <header class="mb-4 text-center">
-        <h1 class="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-wider" style="text-shadow: 0 0 20px rgba(0,255,255,0.3);">JAPtris</h1>
+        <h1 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-wider" style="text-shadow: 0 0 20px rgba(0,255,255,0.3);">JAPtris</h1>
     </header>
 
     <!-- Main Game Area -->
     <div class="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 sm:gap-8 items-center md:items-start justify-items-center">
         
-        <!-- Left Panel: Stats -->
+        <!-- Left Panel: Stats (Desktop Only) -->
         <div class="glass-panel rounded-2xl p-4 sm:p-6 w-full max-w-[200px] flex flex-row md:flex-col justify-between items-center md:items-start gap-4 order-2 md:order-1 hidden md:flex">
             <div class="w-full text-center md:text-left">
                 <p class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-1">Score</p>
@@ -64,34 +63,39 @@
 
         <!-- Center: Game Canvas -->
         <div class="relative order-1 md:order-2">
-            <!-- Game Board -->
-            <div id="boardContainer" class="glass-panel rounded-xl p-2 sm:p-3 relative bg-black/50 shadow-[0_0_30px_rgba(0,0,0,0.8)] border border-transparent">
+            <!-- Game Board Container -->
+            <div id="boardContainer" class="glass-panel rounded-xl p-2 sm:p-3 relative bg-black/50 shadow-[0_0_30px_rgba(0,0,0,0.8)] border border-transparent touch-manipulation">
                 <canvas id="gameCanvas" width="300" height="600" class="bg-slate-900 rounded block w-[240px] h-[480px] sm:w-[300px] sm:h-[600px]"></canvas>
                 
                 <!-- Overlay: Start Screen -->
-                <div id="startScreen" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-10 transition-opacity duration-300">
+                <div id="startScreen" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl z-10 transition-opacity duration-300 p-4">
                     <h2 class="text-3xl font-bold text-white mb-2 animate-pulse text-center">Ready?</h2>
-                    <p class="text-slate-300 mb-8 text-sm text-center px-4">Use Arrow Keys & Spacebar<br>or the on-screen controls.</p>
+                    <div class="md:block hidden text-slate-300 mb-8 text-sm text-center">
+                        Use Arrow Keys & Spacebar
+                    </div>
+                    <div class="md:hidden text-cyan-400 mb-8 text-sm font-bold text-center">
+                        Tap Bottom Corners: Move<br>Tap Middle: Rotate
+                    </div>
                     <button id="startBtn" class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-full hover:scale-105 active:scale-95 transition-transform shadow-[0_0_20px_rgba(6,182,212,0.5)]">Play JAPtris</button>
                 </div>
 
                 <!-- Overlay: Game Over -->
-                <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 hidden">
+                <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 hidden p-4">
                     <h2 class="text-4xl font-black text-red-500 mb-2 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]">GAME OVER</h2>
                     <p class="text-slate-300 mb-1">Final Score</p>
                     <p id="finalScore" class="text-5xl font-mono font-bold text-white mb-6">0</p>
                     
-                    <!-- High Score Entry Modal -->
+                    <!-- High Score Entry -->
                     <div id="newHighScoreEntry" class="hidden flex flex-col items-center mb-6 w-full px-6">
                         <p class="text-yellow-400 font-bold mb-3 animate-pulse">New Top Score!</p>
                         <input type="text" id="playerName" maxlength="3" placeholder="AAA" class="text-slate-900 text-center text-3xl font-mono w-24 p-2 rounded mb-3 uppercase font-bold outline-none border-2 border-yellow-400 focus:border-white shadow-[0_0_15px_rgba(250,204,21,0.5)]">
                         <button id="submitScoreBtn" class="px-6 py-2 bg-yellow-400 text-yellow-950 font-bold rounded-full hover:scale-105 active:scale-95 transition-transform w-full">Save Score</button>
                     </div>
 
-                    <!-- Publication Ad Modal -->
-                    <div id="pubAdContainer" class="hidden flex-col items-center mb-6 w-full px-6 max-w-[280px] sm:max-w-sm text-center">
+                    <!-- Publication Ad -->
+                    <div id="pubAdContainer" class="hidden flex-col items-center mb-6 w-full px-6 max-w-[280px] text-center">
                         <p class="text-slate-300 text-xs sm:text-sm mb-2 font-semibold">Play again, but please have a look at our newest publication first:</p>
-                        <a id="pubAdLink" href="#" target="_blank" class="block w-full p-3 bg-slate-900/80 border border-cyan-400/50 rounded-lg text-cyan-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors mb-4 text-xs sm:text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                        <a id="pubAdLink" href="#" target="_blank" class="block w-full p-3 bg-slate-900/80 border border-cyan-400/50 rounded-lg text-cyan-400 hover:text-cyan-300 transition-colors mb-4 text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.3)] truncate">
                             Publication Title
                         </a>
                     </div>
@@ -118,37 +122,20 @@
         </div>
 
         <!-- Right Panel -->
-        <div class="w-full max-w-[200px] flex flex-col items-center md:items-stretch gap-4 order-3 md:order-3">
-            <div class="glass-panel rounded-2xl p-4 w-full flex flex-col items-center">
+        <div class="w-full max-w-[200px] flex flex-col items-center md:items-stretch gap-4 order-3">
+            <!-- Next Piece (Desktop Only) -->
+            <div class="glass-panel rounded-2xl p-4 w-full flex-col items-center hidden md:flex">
                 <p class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-3 w-full text-center">Next Piece</p>
                 <div class="bg-slate-900/80 rounded border border-white/5 p-2 flex items-center justify-center">
-                    <canvas id="nextCanvas" width="150" height="150" class="block w-[100px] h-[100px] sm:w-[150px] sm:h-[150px]"></canvas>
+                    <canvas id="nextCanvas" width="150" height="150" class="block w-[100px] h-[100px]"></canvas>
                 </div>
             </div>
             
+            <!-- Leaderboard -->
             <div class="glass-panel rounded-2xl p-4 w-full hidden md:block">
                 <p class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-3 text-center border-b border-white/10 pb-2">Leaderboard</p>
-                <ul id="leaderboardList" class="flex flex-col gap-2 font-mono"></ul>
+                <ul id="leaderboardList" class="flex flex-col gap-2 font-mono text-xs"></ul>
             </div>
-        </div>
-    </div>
-
-    <!-- Mobile Controls -->
-    <div class="mt-auto md:mt-8 w-full max-w-sm flex justify-between px-4 pb-6 md:hidden">
-        <div class="flex gap-2">
-            <button id="btn-left" class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center active:bg-white/30 backdrop-blur border border-white/20 touch-manipulation">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-            <button id="btn-down" class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center active:bg-white/30 backdrop-blur border border-white/20 touch-manipulation">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </button>
-            <button id="btn-right" class="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center active:bg-white/30 backdrop-blur border border-white/20 touch-manipulation">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
-        </div>
-        <div class="flex gap-2">
-            <button id="btn-rotate" class="w-14 h-14 bg-cyan-500/30 rounded-full flex items-center justify-center active:bg-cyan-500/60 backdrop-blur border border-cyan-400/50 touch-manipulation text-xl text-white">↻</button>
-            <button id="btn-drop" class="w-14 h-14 bg-red-500/30 rounded-full flex items-center justify-center active:bg-red-500/60 backdrop-blur border border-red-400/50 touch-manipulation text-xl font-bold text-white">⇓</button>
         </div>
     </div>
 
@@ -172,6 +159,7 @@
         let gameState = 'IDLE';
         let animationId;
 
+        // Leaderboard - Original set of 5
         let highScores = [
             { name: "JAP", score: 15000 },
             { name: "CHM", score: 10000 },
@@ -180,8 +168,7 @@
             { name: "NOB", score: 2500 }
         ];
 
-        // --- UPDATED PUBLICATION DATABASE ---
-        // Newest papers first for weighted randomization
+        // Publications - Full restored list
         const publications = [
             { title: "Droplet Microfluidic Approach to Investigate Fibroblasts in Breast Cancer", url: "https://pubs.acs.org/doi/10.1021/acsbiomaterials.5c01025" },
             { title: "Bubble‐Free Frontal Polymerization using 1,1,2,2‐Tetraphenyl‐1,2‐Ethanediol", url: "https://doi.org/10.1002/pol.20250433" },
@@ -200,11 +187,11 @@
         let dropCounter = 0;
         let dropInterval = 600;
         let lastTime = 0;
-
         let boardFlash = 0;
         let linesToClear = [];
         let clearTimer = 0;
 
+        // Assets and Emotions
         const images = { normal: new Image(), worried: new Image(), angry: new Image() };
         images.normal.src = 'JAP-portrait.jpeg';
         images.worried.src = 'JAP-worried.jpeg';
@@ -213,6 +200,13 @@
         images.worried.onerror = () => { images.worried = images.normal; hasCustomEmotions.worried = false; };
         images.angry.onerror = () => { images.angry = images.normal; hasCustomEmotions.angry = false; };
 
+        const COLORS = [null, '#00FFFF', '#3b82f6', '#f97316', '#eab308', '#22c55e', '#a855f7', '#ef4444'];
+        const PIECES = [[], [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]], [[2,0,0], [2,2,2], [0,0,0]], [[0,0,3], [3,3,3], [0,0,0]], [[4,4], [4,4]], [[0,5,5], [5,5,0], [0,0,0]], [[0,6,0], [6,6,6], [0,0,0]], [[7,7,0], [0,7,7], [0,0,0]]];
+
+        let currentPiece = { matrix: [], x: 0, y: 0 };
+        let nextPieceMatrix = [];
+
+        // Height detection for emotions
         function getHighestRow() {
             let highest = ROWS;
             for (let y = 0; y < ROWS; y++) {
@@ -224,6 +218,7 @@
             return highest;
         }
 
+        // Audio
         let audioCtx;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -244,12 +239,8 @@
                 osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(600, now + 0.08);
                 gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.linearRampToValueAtTime(0.001, now + 0.08);
                 osc.start(now); osc.stop(now + 0.08);
-            } else if (type === 'drop') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
-                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-                osc.start(now); osc.stop(now + 0.15);
             } else if (type === 'clear') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(500, now); osc.frequency.linearRampToValueAtTime(800, now + 0.1); osc.frequency.linearRampToValueAtTime(1200, now + 0.2);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(500, now); osc.frequency.linearRampToValueAtTime(1200, now + 0.2);
                 gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
                 osc.start(now); osc.stop(now + 0.3);
             } else if (type === 'gameover') {
@@ -259,12 +250,7 @@
             }
         }
 
-        const COLORS = [null, '#00FFFF', '#3b82f6', '#f97316', '#eab308', '#22c55e', '#a855f7', '#ef4444'];
-        const PIECES = [[], [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]], [[2,0,0], [2,2,2], [0,0,0]], [[0,0,3], [3,3,3], [0,0,0]], [[4,4], [4,4]], [[0,5,5], [5,5,0], [0,0,0]], [[0,6,0], [6,6,6], [0,0,0]], [[7,7,0], [0,7,7], [0,0,0]]];
-
-        let currentPiece = { matrix: [], x: 0, y: 0 };
-        let nextPieceMatrix = [];
-
+        // Logic
         function createMatrix(w, h) { return Array.from({length: h}, () => new Array(w).fill(0)); }
         function createPiece() { const index = Math.floor(Math.random() * 7) + 1; return PIECES[index].map(row => [...row]); }
 
@@ -305,13 +291,6 @@
             dropCounter = 0;
         }
 
-        function hardDrop() {
-            while (!collide(board, currentPiece)) currentPiece.y++;
-            currentPiece.y--; merge(board, currentPiece); playSound('drop'); boardFlash = 0.4; checkLines();
-            if (gameState !== 'CLEARING') resetPiece();
-            dropCounter = 0;
-        }
-
         function rotatePiece() {
             const m = currentPiece.matrix; const original = m.map(row => [...row]);
             for (let y = 0; y < m.length; ++y) { for (let x = 0; x < y; ++x) [m[x][y], m[y][x]] = [m[y][x], m[x][y]]; }
@@ -319,7 +298,7 @@
             let offset = 1;
             while (collide(board, currentPiece)) {
                 currentPiece.x += offset; offset = -(offset + (offset > 0 ? 1 : -1));
-                if (offset > m[0].length) { currentPiece.matrix = original; currentPiece.x += offset; return; }
+                if (offset > m[0].length) { currentPiece.matrix = original; return; }
             }
             playSound('rotate');
         }
@@ -345,8 +324,8 @@
                 lines += clearedLines; level = Math.floor(lines / 10) + 1;
                 dropInterval = Math.max(100, 600 - (level - 1) * 60);
                 ['scoreDisplay', 'scoreDisplayMobile'].forEach(id => {
-                    const el = document.getElementById(id); el.innerText = score;
-                    el.classList.add('text-yellow-300', 'scale-110'); setTimeout(() => el.classList.remove('text-yellow-300', 'scale-110'), 200);
+                    const el = document.getElementById(id);
+                    if (el) { el.innerText = score; el.classList.add('text-yellow-300', 'scale-110'); setTimeout(() => el.classList.remove('text-yellow-300', 'scale-110'), 200); }
                 });
             }
             document.getElementById('linesDisplay').innerText = lines;
@@ -360,13 +339,12 @@
             list.innerHTML = '';
             highScores.forEach((entry, i) => {
                 const isTop = i === 0;
-                list.innerHTML += `<li class="flex justify-between items-center bg-black/20 px-3 py-2 rounded border border-white/5"><span class="${isTop ? 'text-yellow-400 font-bold' : 'text-slate-300'}">${i+1}. ${entry.name}</span><span class="${isTop ? 'text-yellow-400 font-bold' : 'text-cyan-400 font-bold'}">${entry.score}</span></li>`;
+                list.innerHTML += `<li class="flex justify-between items-center bg-black/20 px-3 py-1 rounded border border-white/5 mb-1"><span class="${isTop ? 'text-yellow-400 font-bold' : 'text-slate-300'}">${i+1}. ${entry.name}</span><span class="${isTop ? 'text-yellow-400 font-bold' : 'text-cyan-400 font-bold'}">${entry.score}</span></li>`;
             });
         }
         renderLeaderboard();
 
         function showPublicationAd() {
-            // Pick random weighted towards index 0 (newest)
             const randIndex = Math.floor(Math.pow(Math.random(), 2) * publications.length);
             const pub = publications[randIndex];
             const pubLink = document.getElementById('pubAdLink');
@@ -384,7 +362,6 @@
                 document.getElementById('pubAdContainer').classList.add('hidden');
                 document.getElementById('playerName').focus();
             } else {
-                document.getElementById('newHighScoreEntry').classList.add('hidden');
                 showPublicationAd();
             }
         }
@@ -399,24 +376,21 @@
 
         function drawBlockBase(context, px, py, colorIndex, alpha = 1, currentImage = images.normal, extraTint = null) {
             if (colorIndex === 0) return;
+            context.globalAlpha = alpha;
             if (currentImage && currentImage.complete && currentImage.naturalWidth !== 0) {
-                context.globalAlpha = alpha;
                 context.drawImage(currentImage, px, py, BLOCK_SIZE, BLOCK_SIZE);
                 context.fillStyle = COLORS[colorIndex];
-                context.globalAlpha = alpha * 0.15; // Lighter tint
+                context.globalAlpha = alpha * 0.15;
                 context.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
                 if (extraTint) { context.fillStyle = extraTint; context.globalAlpha = alpha * 0.2; context.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE); }
             } else {
-                context.fillStyle = COLORS[colorIndex]; context.globalAlpha = alpha; context.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+                context.fillStyle = COLORS[colorIndex];
+                context.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
             }
             context.globalAlpha = 1.0;
             context.strokeStyle = COLORS[colorIndex];
             context.lineWidth = 2;
             context.strokeRect(px + 1, py + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
-            context.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
-            context.lineWidth = 2; context.beginPath(); context.moveTo(px, py + BLOCK_SIZE); context.lineTo(px, py); context.lineTo(px + BLOCK_SIZE, py); context.stroke();
-            context.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.4})`;
-            context.beginPath(); context.moveTo(px + BLOCK_SIZE, py); context.lineTo(px + BLOCK_SIZE, py + BLOCK_SIZE); context.lineTo(px, py + BLOCK_SIZE); context.stroke();
         }
 
         function drawNextPiece() {
@@ -435,7 +409,7 @@
                         } else {
                             nextCtx.fillStyle = COLORS[value]; nextCtx.fillRect(px, py, bSize, bSize);
                         }
-                        nextCtx.strokeStyle = COLORS[value]; nextCtx.lineWidth = 2; nextCtx.strokeRect(px + 1, py + 1, bSize - 2, bSize - 2);
+                        nextCtx.strokeStyle = COLORS[value]; nextCtx.lineWidth = 1; nextCtx.strokeRect(px + 1, py + 1, bSize - 2, bSize - 2);
                     }
                 });
             });
@@ -443,6 +417,7 @@
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
             const highest = getHighestRow();
             let currentImage = images.normal, emotionTint = null;
             if (highest <= 3) {
@@ -459,6 +434,7 @@
             for(let j=1; j<ROWS; j++) { ctx.beginPath(); ctx.moveTo(0, j*BLOCK_SIZE); ctx.lineTo(canvas.width, j*BLOCK_SIZE); ctx.stroke(); }
 
             board.forEach((row, y) => { row.forEach((value, x) => { if (value > 0) drawBlockBase(ctx, x * BLOCK_SIZE, y * BLOCK_SIZE, value, 1, currentImage, emotionTint); }); });
+            
             if (gameState === 'PLAYING') {
                 currentPiece.matrix.forEach((row, y) => { row.forEach((value, x) => { if (value > 0) drawBlockBase(ctx, (currentPiece.x + x) * BLOCK_SIZE, (currentPiece.y + y) * BLOCK_SIZE, value, 1, currentImage, emotionTint); }); });
             } else if (gameState === 'CLEARING') {
@@ -480,10 +456,8 @@
 
         function startGame() {
             initAudio(); board = createMatrix(COLS, ROWS); score = 0; lines = 0; level = 1; dropInterval = 600; updateScore(0);
-            document.getElementById('startScreen').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('gameOverScreen').classList.add('hidden');
-            document.getElementById('pubAdContainer').classList.add('hidden');
-            boardContainer.classList.remove('danger-mode');
             gameStarted = true; gameState = 'PLAYING'; nextPieceMatrix = []; resetPiece(); lastTime = performance.now(); update();
         }
 
@@ -494,26 +468,40 @@
             boardContainer.classList.remove('danger-mode'); checkLeaderboardEntry(); cancelAnimationFrame(animationId);
         }
 
+        // Keyboard Inputs
         document.addEventListener('keydown', e => {
             if (!gameStarted || gameState !== 'PLAYING') return;
             switch (e.keyCode) {
-                case 37: move(-1); e.preventDefault(); break;
-                case 39: move(1); e.preventDefault(); break;
-                case 40: playerDrop(); e.preventDefault(); break;
-                case 38: rotatePiece(); e.preventDefault(); break;
-                case 32: hardDrop(); e.preventDefault(); break;
+                case 37: move(-1); break;
+                case 39: move(1); break;
+                case 40: playerDrop(); break;
+                case 38: rotatePiece(); break;
+                case 32: while(!collide(board, currentPiece)) currentPiece.y++; currentPiece.y--; playerDrop(); break;
             }
         });
 
-        const bindButton = (id, action) => {
-            const btn = document.getElementById(id);
-            const handler = (e) => { e.preventDefault(); if (gameStarted && gameState === 'PLAYING') action(); };
-            btn.addEventListener('touchstart', handler, {passive: false}); btn.addEventListener('mousedown', handler);
-        };
-        bindButton('btn-left', () => move(-1)); bindButton('btn-right', () => move(1)); bindButton('btn-down', () => playerDrop()); bindButton('btn-rotate', () => rotatePiece()); bindButton('btn-drop', () => hardDrop());
+        // Responsive Touch Controls
+        boardContainer.addEventListener('touchstart', e => {
+            if (!gameStarted || gameState !== 'PLAYING') return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = boardContainer.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            const w = rect.width, h = rect.height;
+
+            if (y > h * 0.7) {
+                if (x < w * 0.4) move(-1);
+                else if (x > w * 0.6) move(1);
+                else rotatePiece();
+            } else {
+                rotatePiece();
+            }
+        }, { passive: false });
 
         document.getElementById('startBtn').addEventListener('click', startGame);
         document.getElementById('restartBtn').addEventListener('click', startGame);
+
         ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     </script>
 </body>
